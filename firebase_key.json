@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "food-waste-attendance",
+  "private_key_id": "1f31b7bdb9ae3d48e94eee83b3ff08ed63e0bc4a",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC9EZhvPE5l9Yca\nEtF3SGXju5C5e4vHp6p9pVvnH0UXTatgzFbRQtc60tOGDR8JZbHz6gXYqL0Gmqu0\nv9OQ9gZ2UVv+T0J0sBft8Z/iCAetYXu+GTrWckjJ3DmdP6TOElX11bxPNIuKvMI4\nmVJIyEywokZTS8tSzsSduFZwzyZqjRTq+KEcQN2nItfiaY287b1PfgZfGOF3QVvS\nJH58ndgFvY795lTfS9ET7+kSmp83IH8yEjXp5NDleCwR1CmtSpPgCDPP7xyx/hHl\npFx/WXcJG8j/vubmpHlMAvRFptfcxhiC+GUUbgmF5PLt12D3gYm2Op8MgBcYXLa+\ngfplApu5AgMBAAECggEAQZ/nXIi+n4Yy8BpjCTegYgTbDX5z/IdWVok8VoMUjKuh\nVhZm9fhw01KVJ9zLDox1UXfDsrmS7sVl3vWMPi8e/BduSl2BcBYlICpzd9WYsJX7\nCPch5IhDeolNmCackghsPMmEtKtE2hF9in6xQGEBuXeB2Gyg9KufNC1lF3/XUjjv\ngvIQj1n6bVWIsIMyu0vclWPqHuO7iwHdHaBOtQycWdGEwdMhbVeie31fLE4TiflO\nzwOd5zeV03dzPMPvND6fM2t3fup/lfjMo1aAVnc4ulihEI/nZfnCDVpdFQH3g0G5\nPJlvKXc7l2IUMZelKooAmmnMZFR3aDPKxd1XY+3qXwKBgQDyDJhOAwmDXVrPBULR\n5uceBOIT14J5EeghIa0SsRglAMHwkLL1p5uEjdiXo7eEvHeI9uo79V2fii/fCPEL\n04Icvqh0I91hGV2IC+0zNcnG0C+xY/hkNmHqQVfd6utCfSKCaQQ7ihiRPMjvkDgE\nktDJIfpcwN0PuRzUi9s5uwho0wKBgQDH90fNVxiH0Awnm/a/54fHqYrL0uJLTqlc\noxeM3c/hjMOAANCXx8XRifJ805cxAlE3i6sB6HJzgzVdIZCyyiAHEA7RD5UrBbDV\nQCc+TIU5wavG1iUCufhtrwFsSSGHCJNV7XKtNo4FPv18YLxtUqdur0/0cF8V+OL+\nVL/p49BRwwKBgQCeDzN13e3cZp3iCiF0SEAsDixDoLuGq/bVi9QlHJgTscbzfMog\nOG8JxEbn3vT8LMYyHmse9D9K60YPcxtVCa0xcB84mCL8QUAekws2Ia29sj0yrYGK\njyipfDoQpFM0e9qJJmKpLqiUTwk3xwmNkwHcFeATqa2xksQM17c0n7oCGQKBgQCP\n33IQ4tZqeR0VrpiFkJ9X37tWVT+uMUWXulxqZPl57d6HjY6Hdhv1XExU1aRVhbZL\nwbjjYYxfYgsWG91RVi5fBoWyk4Se9LQ7arIRl9rPKHJgWJk+cfG1cRIUCDYQQvJH\nA9XbnIHocl7Ni4hnG+4NrCNZ2zP+yhkAJpgCP4AWIwKBgQDHoqybe3IF7h/soWV2\nmnbyB+hJi7esyWQP2RP1VTSYSsUx6GsJPN8CJuMQ3FQv3TsKjwdVkt67OQbRX2+d\nKHokRJuKcA4c6U6pHYKart2Zl7tKZ3Nfi5O2SiSPOc9dEwf44eSXo+ruP6wh7I4j\n/qDwxkLn7EzPSw/YGBLeqtIDIg==\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@food-waste-attendance.iam.gserviceaccount.com",
+  "client_id": "102577645862050163131",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40food-waste-attendance.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
