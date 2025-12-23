@@ -1,12 +1,12 @@
-import qrcode
-import os
+# import qrcode
+# import os
 
-os.makedirs("students_qr", exist_ok=True)
+# os.makedirs("students_qr", exist_ok=True)
 
-for i in range(1, 21):
-    name = f"Student{i}"
-    erp = f"ERP{i:03d}"
-    data = f"Name:{name};ERP:{erp}"
-    img = qrcode.make(data)
-    img.save(f"students_qr/{erp}.png")
-print("QR codes generated in 'students_qr' folder.")
+# for i in range(1, 21):
+#     name = f"Student{i}"
+#     erp = f"ERP{i:03d}"
+#     data = f"Name:{name};ERP:{erp}"
+#     img = qrcode.make(data)
+#     img.save(f"students_qr/{erp}.png")
+# print("QR codes generated in 'students_qr' folder.")
