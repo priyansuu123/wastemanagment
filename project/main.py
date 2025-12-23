@@ -1627,158 +1627,466 @@
 
 
 
+# import cv2
+# import time
+# import numpy as np
+# import csv
+# import firebase_admin
+# from firebase_admin import credentials, firestore
+# from pyzbar.pyzbar import decode
+# import os
+
+# # ================= CONFIG =================
+# FIREBASE_JSON = "firebase_key.json"
+# CSV_FILE = "food_waste_backup.csv"
+# QR_WAIT = 4  # seconds
+# PLATE_RADIUS_PIXELS = 150  # adjust based on laptop camera distance
+
+# # ================= FIREBASE =================
+# if not firebase_admin._apps:
+#     cred = credentials.Certificate(FIREBASE_JSON)
+#     firebase_admin.initialize_app(cred)
+# db = firestore.client()
+# print("✅ Firebase connected")
+
+# # ================= CSV BACKUP =================
+# if not os.path.exists(CSV_FILE):
+#     with open(CSV_FILE, "w", newline="") as f:
+#         writer = csv.writer(f)
+#         writer.writerow(["Name", "ERP", "Date", "Time", "Food_Waste_Percentage"])
+
+# # ================= CAMERA =================
+# cap = cv2.VideoCapture(0)
+# if not cap.isOpened():
+#     print("❌ Camera not opening")
+#     exit()
+
+# processed_qrs = set()
+# print("Show QR code to camera...")
+
+# # ================= HELPER FUNCTIONS =================
+# def detect_plate(frame_gray):
+#     """Hough Circle detection tuned for 30cm steel plate"""
+#     blur = cv2.GaussianBlur(frame_gray, (9, 9), 2)
+#     circles = cv2.HoughCircles(blur, cv2.HOUGH_GRADIENT, dp=1.2, minDist=100,
+#                                param1=100, param2=30,
+#                                minRadius=int(PLATE_RADIUS_PIXELS*0.8),
+#                                maxRadius=int(PLATE_RADIUS_PIXELS*1.2))
+#     if circles is not None:
+#         circles = np.uint16(np.around(circles))
+#         return (circles[0,0][0], circles[0,0][1]), circles[0,0][2]
+#     return None, None
+
+# def process_plate(frame, center, radius):
+#     """Detect food inside plate and return overlay + percentage"""
+#     overlay = frame.copy()
+#     plate_mask = np.zeros(frame.shape[:2], dtype=np.uint8)
+#     cv2.circle(plate_mask, center, radius, 255, -1)
+
+#     # Convert to HSV for food detection (exclude steel reflections)
+#     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+#     lower_food = np.array([0, 50, 50])
+#     upper_food = np.array([179, 255, 200])
+#     food_mask = cv2.inRange(hsv, lower_food, upper_food)
+#     food_inside_plate = cv2.bitwise_and(food_mask, plate_mask)
+
+#     # Morphological cleaning
+#     food_inside_plate = cv2.morphologyEx(food_inside_plate, cv2.MORPH_OPEN, np.ones((3,3),np.uint8))
+
+#     # Overlay blue circle = plate
+#     cv2.circle(overlay, center, radius, (255, 0, 0), 2)
+#     # Overlay green mask = food
+#     green_mask = cv2.merge([np.zeros_like(food_inside_plate), food_inside_plate, np.zeros_like(food_inside_plate)])
+#     overlay = cv2.addWeighted(overlay, 1, green_mask, 0.5, 0)
+
+#     # Food percentage
+#     plate_area = cv2.countNonZero(plate_mask)
+#     food_area = cv2.countNonZero(food_inside_plate)
+#     food_percent = int((food_area / plate_area) * 100) if plate_area > 0 else 0
+
+#     cv2.putText(overlay, f"Food Left: {food_percent}%", (20,40),
+#                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+#     return overlay, food_percent
+
+# def save_data(name, erp, food_percent):
+#     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+#     # Firebase
+#     db.collection("food_waste").add({
+#         "Name": name,
+#         "ERP": erp,
+#         "Date": timestamp.split(" ")[0],
+#         "Time": timestamp.split(" ")[1],
+#         "Food_Waste_Percentage": food_percent
+#     })
+#     # CSV backup
+#     with open(CSV_FILE, "a", newline="") as f:
+#         writer = csv.writer(f)
+#         writer.writerow([name, erp, timestamp.split(" ")[0], timestamp.split(" ")[1], food_percent])
+#     print(f"✅ Data saved for {name}, Food Left: {food_percent}%")
+
+# # ================= MAIN LOOP =================
+# while True:
+#     ret, frame = cap.read()
+#     if not ret:
+#         break
+
+#     qr_data = None
+#     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+#     # ----- QR SCAN -----
+#     for qr in decode(gray):
+#         qr_data = qr.data.decode("utf-8")
+#         x, y, w, h = qr.rect
+#         cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0),2)
+#         cv2.putText(frame, qr_data, (x, y-10),
+#                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
+
+#     cv2.imshow("Food Waste Detection", frame)
+
+#     # ----- PROCESS EACH QR ONCE -----
+#     if qr_data and qr_data not in processed_qrs:
+#         processed_qrs.add(qr_data)
+#         print(f"✅ Student Identified: {qr_data}")
+
+#         # wait for plate positioning
+#         time.sleep(QR_WAIT)
+
+#         ret2, plate_frame = cap.read()
+#         if not ret2:
+#             continue
+
+#         frame_gray = cv2.cvtColor(plate_frame, cv2.COLOR_BGR2GRAY)
+#         center, radius = detect_plate(frame_gray)
+#         if center is None:
+#             print("⚠️ Plate not detected. Adjust camera/lighting.")
+#             continue
+
+#         overlay_frame, food_percent = process_plate(plate_frame, center, radius)
+#         cv2.imshow("Food Waste Detection", overlay_frame)
+#         cv2.waitKey(1500)
+
+#         # save data
+#         try:
+#             student_info = qr_data.split(",")
+#             name = student_info[0]
+#             erp = student_info[1] if len(student_info)>1 else "Unknown"
+#             save_data(name, erp, food_percent)
+#         except:
+#             print("⚠️ QR format wrong. Use: Name,ERP")
+
+#     # Quit key
+#     if cv2.waitKey(1) & 0xFF == ord('q'):
+#         break
+
+# cap.release()
+# cv2.destroyAllWindows()
+
+
+
+
+
+
+
+# import cv2
+# import time
+# import numpy as np
+# import csv
+# import firebase_admin
+# from firebase_admin import credentials, firestore
+# from pyzbar.pyzbar import decode
+# import os
+
+# # ================= CONFIG =================
+# FIREBASE_JSON = "firebase_key.json"
+# CSV_FILE = "food_waste_backup.csv"
+# QR_WAIT = 4
+# PLATE_RADIUS_PIXELS = 150
+
+# print("======================================")
+# print(" SMART FOOD WASTE DETECTION SYSTEM ")
+# print("======================================")
+
+# # ================= FIREBASE =================
+# if not firebase_admin._apps:
+#     cred = credentials.Certificate(FIREBASE_JSON)
+#     firebase_admin.initialize_app(cred)
+
+# db = firestore.client()
+# print("✅ Firebase connected")
+
+# # ================= CSV BACKUP =================
+# if not os.path.exists(CSV_FILE):
+#     with open(CSV_FILE, "w", newline="") as f:
+#         writer = csv.writer(f)
+#         writer.writerow(["Name", "ERP", "Date", "Time", "Food_Waste_Percentage"])
+#     print("CSV file created")
+# else:
+#     print("CSV backup file found")
+
+# # ================= CAMERA =================
+# cap = cv2.VideoCapture(0)
+# if not cap.isOpened():
+#     print("❌ Camera not opening")
+#     exit()
+
+# print("📷 Camera started")
+# print("👉 Show QR code to camera")
+
+# processed_qrs = set()
+
+# # ================= HELPER FUNCTIONS =================
+# def detect_plate(frame_gray):
+#     blur = cv2.GaussianBlur(frame_gray, (9, 9), 2)
+#     circles = cv2.HoughCircles(
+#         blur,
+#         cv2.HOUGH_GRADIENT,
+#         dp=1.2,
+#         minDist=100,
+#         param1=100,
+#         param2=30,
+#         minRadius=int(PLATE_RADIUS_PIXELS * 0.8),
+#         maxRadius=int(PLATE_RADIUS_PIXELS * 1.2)
+#     )
+
+#     if circles is not None:
+#         circles = np.uint16(np.around(circles))
+#         return (circles[0, 0][0], circles[0, 0][1]), circles[0, 0][2]
+
+#     return None, None
+
+
+# def process_plate(frame, center, radius):
+#     overlay = frame.copy()
+
+#     plate_mask = np.zeros(frame.shape[:2], dtype=np.uint8)
+#     cv2.circle(plate_mask, center, radius, 255, -1)
+
+#     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+#     lower_food = np.array([0, 50, 50])
+#     upper_food = np.array([179, 255, 200])
+#     food_mask = cv2.inRange(hsv, lower_food, upper_food)
+
+#     food_inside_plate = cv2.bitwise_and(food_mask, plate_mask)
+#     food_inside_plate = cv2.morphologyEx(
+#         food_inside_plate,
+#         cv2.MORPH_OPEN,
+#         np.ones((3, 3), np.uint8)
+#     )
+
+#     cv2.circle(overlay, center, radius, (255, 0, 0), 2)
+
+#     green_mask = cv2.merge([
+#         np.zeros_like(food_inside_plate),
+#         food_inside_plate,
+#         np.zeros_like(food_inside_plate)
+#     ])
+
+#     overlay = cv2.addWeighted(overlay, 1, green_mask, 0.5, 0)
+
+#     plate_area = cv2.countNonZero(plate_mask)
+#     food_area = cv2.countNonZero(food_inside_plate)
+
+#     food_percent = int((food_area / plate_area) * 100) if plate_area > 0 else 0
+
+#     cv2.putText(
+#         overlay,
+#         f"Food Left: {food_percent}%",
+#         (20, 40),
+#         cv2.FONT_HERSHEY_SIMPLEX,
+#         1,
+#         (0, 0, 255),
+#         2
+#     )
+
+#     return overlay, food_percent
+
+
+# def save_data(name, erp, food_percent):
+#     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+
+#     db.collection("food_waste").add({
+#         "Name": name,
+#         "ERP": erp,
+#         "Date": timestamp.split(" ")[0],
+#         "Time": timestamp.split(" ")[1],
+#         "Food_Waste_Percentage": food_percent
+#     })
+
+#     with open(CSV_FILE, "a", newline="") as f:
+#         writer = csv.writer(f)
+#         writer.writerow([
+#             name,
+#             erp,
+#             timestamp.split(" ")[0],
+#             timestamp.split(" ")[1],
+#             food_percent
+#         ])
+
+#     print("✅ Data saved")
+#     print("   Name:", name)
+#     print("   ERP:", erp)
+#     print("   Food Waste:", food_percent, "%")
+#     print("----------------------------------")
+
+
+# # ================= MAIN LOOP =================
+# while True:
+#     ret, frame = cap.read()
+#     if not ret:
+#         break
+
+#     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#     qr_data = None
+
+#     for qr in decode(gray):
+#         qr_data = qr.data.decode("utf-8")
+#         x, y, w, h = qr.rect
+#         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+#         cv2.putText(frame, qr_data, (x, y - 10),
+#                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
+#     cv2.imshow("Food Waste Detection", frame)
+
+#     # ---- PROCESS QR ONLY ONCE ----
+#     if qr_data and qr_data not in processed_qrs:
+#         processed_qrs.add(qr_data)
+
+#         print("🟢 QR detected:", qr_data)
+#         print("⏳ Waiting for plate placement...")
+
+#         time.sleep(QR_WAIT)
+
+#         ret2, plate_frame = cap.read()
+#         if not ret2:
+#             continue
+
+#         print("🔍 Detecting plate...")
+#         gray_plate = cv2.cvtColor(plate_frame, cv2.COLOR_BGR2GRAY)
+#         center, radius = detect_plate(gray_plate)
+
+#         if center is None:
+#             print("⚠️ Plate not detected")
+#             continue
+
+#         print("✅ Plate detected")
+
+#         overlay, food_percent = process_plate(plate_frame, center, radius)
+#         cv2.imshow("Food Waste Detection", overlay)
+#         cv2.waitKey(1500)
+
+#         try:
+#             student = qr_data.split(",")
+#             name = student[0]
+#             erp = student[1] if len(student) > 1 else "Unknown"
+#             print("📊 Food waste calculated:", food_percent, "%")
+#             save_data(name, erp, food_percent)
+#         except:
+#             print("❌ Invalid QR format (Use: Name,ERP)")
+
+#     if cv2.waitKey(1) & 0xFF == ord('q'):
+#         print("Program terminated by user")
+#         break
+
+# cap.release()
+# cv2.destroyAllWindows()
+
+
+    
+
+
 import cv2
 import time
-import numpy as np
-import csv
-import firebase_admin
-from firebase_admin import credentials, firestore
-from pyzbar.pyzbar import decode
-import os
-import dotenv from "dotenv"
-dotenv.config()
 
-# ================= CONFIG =================
-FIREBASE_JSON = "firebase_key.json"
-CSV_FILE = "food_waste_backup.csv"
-QR_WAIT = 4  # seconds
-PLATE_RADIUS_PIXELS = 150  # adjust based on laptop camera distance
+from config import QR_WAIT
+from firebase_service import init_firebase, init_csv, save_data
+from plate_detection import detect_plate, process_plate
+from utils import scan_qr
 
-# ================= FIREBASE =================
-if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_JSON)
-    firebase_admin.initialize_app(cred)
-db = firestore.client()
-print("✅ Firebase connected")
+print("==========================================")
+print(" SMART FOOD WASTE DETECTION SYSTEM STARTED ")
+print("==========================================")
 
-# ================= CSV BACKUP =================
-if not os.path.exists(CSV_FILE):
-    with open(CSV_FILE, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Name", "ERP", "Date", "Time", "Food_Waste_Percentage"])
+# ---------- INITIALIZE SERVICES ----------
+db = init_firebase()
+init_csv()
 
-# ================= CAMERA =================
+# ---------- CAMERA SETUP ----------
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("❌ Camera not opening")
     exit()
 
+print("📷 Camera started")
+print("👉 Show QR code to camera")
+
 processed_qrs = set()
-print("Show QR code to camera...")
 
-# ================= HELPER FUNCTIONS =================
-def detect_plate(frame_gray):
-    """Hough Circle detection tuned for 30cm steel plate"""
-    blur = cv2.GaussianBlur(frame_gray, (9, 9), 2)
-    circles = cv2.HoughCircles(blur, cv2.HOUGH_GRADIENT, dp=1.2, minDist=100,
-                               param1=100, param2=30,
-                               minRadius=int(PLATE_RADIUS_PIXELS*0.8),
-                               maxRadius=int(PLATE_RADIUS_PIXELS*1.2))
-    if circles is not None:
-        circles = np.uint16(np.around(circles))
-        return (circles[0,0][0], circles[0,0][1]), circles[0,0][2]
-    return None, None
-
-def process_plate(frame, center, radius):
-    """Detect food inside plate and return overlay + percentage"""
-    overlay = frame.copy()
-    plate_mask = np.zeros(frame.shape[:2], dtype=np.uint8)
-    cv2.circle(plate_mask, center, radius, 255, -1)
-
-    # Convert to HSV for food detection (exclude steel reflections)
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    lower_food = np.array([0, 50, 50])
-    upper_food = np.array([179, 255, 200])
-    food_mask = cv2.inRange(hsv, lower_food, upper_food)
-    food_inside_plate = cv2.bitwise_and(food_mask, plate_mask)
-
-    # Morphological cleaning
-    food_inside_plate = cv2.morphologyEx(food_inside_plate, cv2.MORPH_OPEN, np.ones((3,3),np.uint8))
-
-    # Overlay blue circle = plate
-    cv2.circle(overlay, center, radius, (255, 0, 0), 2)
-    # Overlay green mask = food
-    green_mask = cv2.merge([np.zeros_like(food_inside_plate), food_inside_plate, np.zeros_like(food_inside_plate)])
-    overlay = cv2.addWeighted(overlay, 1, green_mask, 0.5, 0)
-
-    # Food percentage
-    plate_area = cv2.countNonZero(plate_mask)
-    food_area = cv2.countNonZero(food_inside_plate)
-    food_percent = int((food_area / plate_area) * 100) if plate_area > 0 else 0
-
-    cv2.putText(overlay, f"Food Left: {food_percent}%", (20,40),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
-    return overlay, food_percent
-
-def save_data(name, erp, food_percent):
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-    # Firebase
-    db.collection("food_waste").add({
-        "Name": name,
-        "ERP": erp,
-        "Date": timestamp.split(" ")[0],
-        "Time": timestamp.split(" ")[1],
-        "Food_Waste_Percentage": food_percent
-    })
-    # CSV backup
-    with open(CSV_FILE, "a", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([name, erp, timestamp.split(" ")[0], timestamp.split(" ")[1], food_percent])
-    print(f"✅ Data saved for {name}, Food Left: {food_percent}%")
-
-# ================= MAIN LOOP =================
+# ---------- MAIN LOOP ----------
 while True:
     ret, frame = cap.read()
     if not ret:
+        print("❌ Camera frame not received")
         break
 
-    qr_data = None
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    # ----- QR SCAN -----
-    for qr in decode(gray):
-        qr_data = qr.data.decode("utf-8")
-        x, y, w, h = qr.rect
-        cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0),2)
-        cv2.putText(frame, qr_data, (x, y-10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,0), 2)
-
+    # ---- QR SCANNING ----
+    qr_data, frame = scan_qr(frame)
     cv2.imshow("Food Waste Detection", frame)
 
-    # ----- PROCESS EACH QR ONCE -----
+    # ---- PROCESS EACH QR ONLY ONCE ----
     if qr_data and qr_data not in processed_qrs:
         processed_qrs.add(qr_data)
-        print(f"✅ Student Identified: {qr_data}")
 
-        # wait for plate positioning
+        print("🟢 QR detected:", qr_data)
+        print("⏳ Waiting for plate placement...")
         time.sleep(QR_WAIT)
 
+        # Capture frame for plate detection
         ret2, plate_frame = cap.read()
         if not ret2:
+            print("❌ Could not read plate frame")
             continue
 
-        frame_gray = cv2.cvtColor(plate_frame, cv2.COLOR_BGR2GRAY)
-        center, radius = detect_plate(frame_gray)
+        # ---- PLATE DETECTION (GREEN CONTOUR METHOD) ----
+        print("🔍 Detecting plate (green contour method)...")
+
+        center, radius, plate_mask = detect_plate(plate_frame)
+
         if center is None:
-            print("⚠️ Plate not detected. Adjust camera/lighting.")
+            print("⚠️ Plate not detected. Please place plate properly.")
             continue
 
-        overlay_frame, food_percent = process_plate(plate_frame, center, radius)
-        cv2.imshow("Food Waste Detection", overlay_frame)
+        print("✅ Plate detected successfully")
+
+        # ---- FOOD PROCESSING ----
+        overlay, food_percent = process_plate(
+            plate_frame,
+            center,
+            radius,
+            plate_mask
+        )
+
+        cv2.imshow("Food Waste Detection", overlay)
         cv2.waitKey(1500)
 
-        # save data
+        # ---- SAVE DATA ----
         try:
             student_info = qr_data.split(",")
             name = student_info[0]
-            erp = student_info[1] if len(student_info)>1 else "Unknown"
-            save_data(name, erp, food_percent)
-        except:
-            print("⚠️ QR format wrong. Use: Name,ERP")
+            erp = student_info[1] if len(student_info) > 1 else "Unknown"
 
-    # Quit key
+            print("📊 Food waste calculated:", food_percent, "%")
+
+            save_data(db, name, erp, food_percent)
+
+        except Exception as e:
+            print("❌ QR format error. Use: Name,ERP")
+
+    # ---- EXIT KEY ----
     if cv2.waitKey(1) & 0xFF == ord('q'):
+        print("🛑 Program stopped by user")
         break
 
+# ---------- CLEANUP ----------
 cap.release()
 cv2.destroyAllWindows()
+print("✅ Camera released and windows closed")
