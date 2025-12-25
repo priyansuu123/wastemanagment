@@ -1,45 +1,67 @@
-import csv
-import os
-import time
 import firebase_admin
 from firebase_admin import credentials, firestore
-from config import FIREBASE_JSON, CSV_FILE
+import os
+import datetime
 
 def init_firebase():
     if not firebase_admin._apps:
-        cred = credentials.Certificate(FIREBASE_JSON)
+        # Get path of THIS file
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Firebase key must be inside project folder
+        key_path = os.path.join(base_dir, "firebase_key.json")
+
+        if not os.path.exists(key_path):
+            raise FileNotFoundError(f"Firebase key not found at: {key_path}")
+
+        cred = credentials.Certificate(key_path)
         firebase_admin.initialize_app(cred)
-    print("✅ Firebase connected")
+
     return firestore.client()
 
-def init_csv():
-    if not os.path.exists(CSV_FILE):
-        with open(CSV_FILE, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["Name", "ERP", "Date", "Time", "Food_Waste_Percentage"])
-        print("CSV backup file created")
-    else:
-        print("CSV backup file found")
+def save_data(db, erp, waste):
+    try:
+        data = {
+            "erp": erp,
+            "waste_percent": waste,
+            "timestamp": datetime.datetime.now()
+        }
+        db.collection("food_waste").add(data)
+        print("✅ Saved to Firebase")
+    except Exception as e:
+        print("❌ Firebase save error:", e)
 
-def save_data(db, name, erp, food_percent):
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
 
-    db.collection("food_waste").add({
-        "Name": name,
-        "ERP": erp,
-        "Date": timestamp.split(" ")[0],
-        "Time": timestamp.split(" ")[1],
-        "Food_Waste_Percentage": food_percent
-    })
 
-    with open(CSV_FILE, "a", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([
-            name,
-            erp,
-            timestamp.split(" ")[0],
-            timestamp.split(" ")[1],
-            food_percent
-        ])
 
-    print(f"✅ Data saved | {name} | {food_percent}%")
+
+# import firebase_admin
+# from firebase_admin import credentials, firestore
+# import os
+
+# def init_firebase():
+#     if not firebase_admin._apps:
+#         cred = credentials.Certificate("firebase_key.json")
+#         firebase_admin.initialize_app(cred)
+#     return firestore.client()
+
+# def save_data(db, erp, waste):
+#     try:
+#         data = {
+#             "erp": erp,
+#             "waste_percentage": int(waste),
+#             "timestamp": firestore.SERVER_TIMESTAMP
+#         }
+
+#         db.collection("food_waste_logs").add(data)
+#         print("🔥 Data saved to Firebase successfully")
+
+#     except Exception as e:
+#         print("❌ Firebase save error:", e)
+
+
+
+
+
+
+
